@@ -10,7 +10,7 @@ import Toast from './components/Toast.tsx';
 import ErrorBanner from './components/ErrorBanner.tsx';
 import type { Message, ChatSession } from './types.ts';
 
-const API_BASE_URL = 'https://study-assistant-production-626a.up.railway.app';
+const API_BASE_URL = 'https://study-assistant-production-48e0.up.railway.app';
 const SESSIONS_STORAGE_KEY = 'study_assistant_sessions_v1';
 
 export default function App() {
