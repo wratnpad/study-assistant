@@ -39,7 +39,8 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "https://study-assistant-production-48e0.up.railway.app/"
     ],
     allow_credentials=True,
     allow_methods=["*"],

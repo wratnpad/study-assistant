@@ -19,6 +19,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 CORS_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://study-assistant-production-48e0.up.railway.app/"
 ]
 if FRONTEND_URL:
     CORS_ORIGINS.append(FRONTEND_URL)
