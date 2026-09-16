@@ -44,16 +44,25 @@ def process_single_pdf(pdf_path: str) -> list[Document]:
         raise FileNotFoundError(f"File PDF tidak ditemukan: {pdf_path}")
 
     file_name = os.path.basename(pdf_path)
-    reader = PdfReader(pdf_path)
-    total_pages = len(reader.pages)
+    try:
+        reader = PdfReader(pdf_path)
+    except Exception as e:
+        raise ValueError(f"Berkas '{file_name}' rusak atau bukan format PDF yang valid.")
 
+    if getattr(reader, "is_encrypted", False):
+        raise ValueError(f"Dokumen '{file_name}' dilindungi kata sandi (password-protected) sehingga tidak dapat dibaca.")
+
+    total_pages = len(reader.pages)
     if total_pages == 0:
-        return []
+        raise ValueError(f"Dokumen '{file_name}' tidak memiliki halaman teks (berkas kosong).")
 
     page_docs = []
     total_chars = 0
     for idx, page in enumerate(reader.pages):
-        text = page.extract_text()
+        try:
+            text = page.extract_text()
+        except Exception:
+            text = ""
         if text and text.strip():
             lines = [line.strip() for line in text.splitlines() if line.strip()]
             clean_text = "\n".join(lines)
@@ -64,9 +73,10 @@ def process_single_pdf(pdf_path: str) -> list[Document]:
             page_docs.append(doc)
             total_chars += len(clean_text)
 
-    if not page_docs:
-        print(f"[!] File {file_name} tidak memiliki teks digital yang terbaca.")
-        return []
+    if not page_docs or total_chars == 0:
+        raise ValueError(
+            f"Dokumen '{file_name}' tidak dapat dibaca karena berupa foto/scan gambar tanpa teks digital."
+        )
 
     avg_chars_per_page = total_chars / len(page_docs)
 
@@ -85,8 +95,9 @@ def process_single_pdf(pdf_path: str) -> list[Document]:
 def ingest_pdf_file(file_path: str) -> list[Document]:
     chunks = process_single_pdf(file_path)
     if not chunks:
+        file_name = os.path.basename(file_path)
         raise ValueError(
-            f"File '{os.path.basename(file_path)}' tidak memiliki teks yang dapat diekstrak."
+            f"Dokumen '{file_name}' tidak dapat dibaca karena berupa foto/scan gambar tanpa teks digital."
         )
 
     vectorstore = get_vector_store()
@@ -112,8 +123,11 @@ def run_ingest():
     all_chunks = []
 
     for pdf_file in pdf_files:
-        chunks = process_single_pdf(pdf_file)
-        all_chunks.extend(chunks)
+        try:
+            chunks = process_single_pdf(pdf_file)
+            all_chunks.extend(chunks)
+        except Exception as e:
+            print(f"[!] Lewati file {pdf_file}: {e}")
 
     for txt_file in txt_files:
         file_name = os.path.basename(txt_file)

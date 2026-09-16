@@ -24,7 +24,7 @@ CORS_ORIGINS = [
 if FRONTEND_URL:
     CORS_ORIGINS.append(FRONTEND_URL)
 
-LLM_MODEL = os.getenv("GROQ_MODEL", "gpt-oss-120b")
+LLM_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 LLM_TEMPERATURE = 0.0
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 

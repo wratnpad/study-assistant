@@ -84,7 +84,7 @@ async def upload_document(file: UploadFile = File(...)):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=400,
-            detail="Format file tidak didukung. Harap unggah file berformat .pdf."
+            detail=f"Format berkas '{file.filename or 'tidak dikenal'}' tidak didukung. Harap unggah berkas berformat .pdf."
         )
 
     safe_filename = os.path.basename(file.filename)
@@ -96,7 +96,7 @@ async def upload_document(file: UploadFile = File(...)):
         if len(content) == 0:
             raise HTTPException(
                 status_code=400,
-                detail="File yang diunggah kosong."
+                detail=f"Berkas '{safe_filename}' kosong (0 byte) dan tidak dapat diproses."
             )
 
         with open(saved_file_path, "wb") as f:
@@ -107,24 +107,44 @@ async def upload_document(file: UploadFile = File(...)):
 
         return {
             "status": "success",
-            "message": "File berhasil diindeks ke basis pengetahuan.",
+            "message": f"Dokumen {safe_filename} berhasil diindeks ke basis pengetahuan.",
             "filename": safe_filename,
             "total_chunks_added": len(new_chunks)
         }
 
     except HTTPException:
+        if os.path.exists(saved_file_path):
+            try:
+                os.remove(saved_file_path)
+            except Exception:
+                pass
         raise
+    except ValueError as e:
+        if os.path.exists(saved_file_path):
+            try:
+                os.remove(saved_file_path)
+            except Exception:
+                pass
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
     except Exception as e:
+        if os.path.exists(saved_file_path):
+            try:
+                os.remove(saved_file_path)
+            except Exception:
+                pass
         raise HTTPException(
             status_code=500,
-            detail=f"Gagal memproses dan mengindeks file PDF: {str(e)}"
+            detail=f"Gagal memproses dokumen '{safe_filename}': {str(e)}"
         )
 
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     FRIENDLY_NO_DOCS_MSG = (
         "⚠️ **Belum ada materi perkuliahan yang diunggah.**\n\n"
-        "Silakan unggah berkas modul atau slide kuliah berformat **.pdf** terlebih dahulu dengan menekan tombol **Upload** (ikon ⬆️ di sebelah kiri kotak input pesan), agar saya dapat mempelajari materinya dan menjawab pertanyaanmu sesuai dokumen rujukan."
+        "Silakan unggah berkas modul atau slide kuliah berformat **.pdf (teks digital, bukan hasil scan/foto)** terlebih dahulu dengan menekan tombol **Upload** (ikon ⬆️ di sebelah kiri kotak input pesan), agar saya dapat mempelajari materinya dan menjawab pertanyaanmu sesuai dokumen rujukan."
     )
 
     async def event_generator():

@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
-import { PanelLeft } from 'lucide-react';
+import { PanelLeft, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 
 import Sidebar from './components/Sidebar.tsx';
 import WelcomeHero from './components/WelcomeHero.tsx';
 import ChatList from './components/ChatList.tsx';
 import ChatInput from './components/ChatInput.tsx';
-import Toast from './components/Toast.tsx';
 import ErrorBanner from './components/ErrorBanner.tsx';
 import type { Message, ChatSession } from './types.ts';
 
@@ -32,7 +31,18 @@ export default function App() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadToast, setUploadToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerToast = (message: string, type: 'success' | 'error' = 'success', duration = 4500) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToast({ type, message });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, duration);
+  };
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -257,7 +267,21 @@ export default function App() {
     if (!file) return;
 
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setErrorMessage('Hanya file dokumen berformat .pdf yang diperbolehkan.');
+      triggerToast(
+        `Berkas "${file.name}" tidak didukung. Harap unggah berkas berformat .pdf.`,
+        'error',
+        5000
+      );
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (file.size === 0) {
+      triggerToast(
+        `Berkas "${file.name}" kosong (0 byte) dan tidak dapat diproses.`,
+        'error',
+        5000
+      );
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -274,33 +298,25 @@ export default function App() {
         body: formData
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data.detail || data.message || `Status HTTP ${response.status}`);
+        const errorDetail = data?.detail || data?.message || `Gagal memproses dokumen "${file.name}" (Status HTTP ${response.status})`;
+        throw new Error(errorDetail);
       }
 
-      setUploadToast(`Berkas ${data.filename} berhasil diindeks (${data.total_chunks_added} chunks)!`);
-      setTimeout(() => setUploadToast(null), 5000);
-
-      const notificationMsg: Message = {
-        id: Date.now().toString(),
-        sender: 'assistant',
-        text: `📄 **Dokumen Berhasil Diindeks!**\n\nBerkas **${data.filename}** telah berhasil di-chunk dan diindeks ke dalam vectorstore & BM25 (${data.total_chunks_added} potongan teks). Anda sekarang dapat langsung menanyakan materi dari dokumen ini!`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setMessages((prev) => [...prev, notificationMsg]);
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === currentSessionId
-            ? { ...s, messages: [...s.messages, notificationMsg] }
-            : s
-        )
+      triggerToast(
+        `Dokumen ${data.filename} berhasil diindeks (${data.total_chunks_added} chunks)!`,
+        'success',
+        4500
       );
     } catch (err: any) {
       console.error('Error uploading document:', err);
-      setErrorMessage(`Gagal mengunggah dokumen: ${err.message}`);
+      triggerToast(
+        err.message || `Gagal memproses dokumen "${file.name}".`,
+        'error',
+        5000
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -311,9 +327,6 @@ export default function App() {
 
   const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-    const target = e.target;
-    target.style.height = 'auto';
-    target.style.height = `${Math.min(target.scrollHeight, 150)}px`;
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -349,18 +362,48 @@ export default function App() {
             </button>
           )}
           <div className="flex items-center gap-2 ml-1">
-            <span className="text-sm sm:text-base font-semibold text-[#e3e3e3] tracking-tight select-none">
-              Study Assistant
+            <span className="text-base sm:text-lg font-bold text-[#e3e3e3] tracking-tight select-none">
+              AIssistant
             </span>
             <span
               className={`w-2 h-2 rounded-full transition-colors ${
                 isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'
               }`}
-              title={isOnline ? 'Backend Online (Port 8000)' : 'Backend Offline (Port 8000)'}
+              title={isOnline ? 'Backend Online' : 'Backend Offline'}
             />
           </div>
         </div>
       </header>
+
+      {toast && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[92%] sm:w-auto flex items-center justify-between sm:justify-start gap-2.5 px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md transition-all animate-slide-down-fade ${
+            toast.type === 'success'
+              ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-500/30'
+              : 'bg-rose-950/90 text-rose-200 border border-rose-500/30'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle size={18} className="text-rose-400 shrink-0" />
+          )}
+          <span className="text-xs sm:text-sm font-medium leading-snug break-words">
+            {toast.message}
+          </span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className={`ml-2 transition-colors cursor-pointer shrink-0 ${
+              toast.type === 'success'
+                ? 'text-emerald-400/70 hover:text-emerald-200'
+                : 'text-rose-400/70 hover:text-rose-200'
+            }`}
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       <input
         ref={fileInputRef}
@@ -370,7 +413,6 @@ export default function App() {
         className="hidden"
       />
 
-      <Toast message={uploadToast} />
       <ErrorBanner message={errorMessage} />
 
       <main className="flex-1 overflow-y-auto flex flex-col px-3 sm:px-5 pt-14 sm:pt-20 pb-28 sm:pb-36 relative">

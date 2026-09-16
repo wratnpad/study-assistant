@@ -2,7 +2,6 @@ import { createContext, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import GeminiStarIcon from './GeminiStarIcon.tsx';
 import CodeBlock from './CodeBlock.tsx';
 import type { Message } from '../types.ts';
 
@@ -52,16 +51,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
   const processedText = normalizeLaTeX(message.text || '');
 
   return (
-    <div className="flex items-start gap-2.5 sm:gap-4 w-full animate-slide-up-fade">
-      <div className="shrink-0 mt-0.5 sm:mt-1 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
-        <div className="sm:hidden">
-          <GeminiStarIcon size={20} />
-        </div>
-        <div className="hidden sm:block">
-          <GeminiStarIcon size={24} />
-        </div>
-      </div>
-
+    <div className="flex items-start w-full animate-slide-up-fade">
       <div className="flex-1 min-w-0 text-[#e3e3e3] text-sm sm:text-base leading-relaxed overflow-hidden">
         {message.text ? (
           <div className="space-y-2.5 sm:space-y-3">

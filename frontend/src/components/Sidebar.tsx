@@ -1,6 +1,5 @@
 import type { MouseEvent } from 'react';
 import { PanelLeftClose, Plus, MessageSquare, Trash2, Clock } from 'lucide-react';
-import GeminiStarIcon from './GeminiStarIcon.tsx';
 import type { ChatSession } from '../types.ts';
 
 interface SidebarProps {
@@ -42,9 +41,8 @@ export default function Sidebar({
         <div className="p-3.5 sm:p-4 pt-[max(0.875rem,env(safe-area-inset-top))] border-b border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <GeminiStarIcon size={20} className="drop-shadow-[0_0_8px_rgba(255,255,255,0.15)] shrink-0" />
-              <span className="text-sm font-semibold text-[#e3e3e3] tracking-tight">
-                Study Assistant
+              <span className="text-base sm:text-lg font-bold text-[#e3e3e3] tracking-tight">
+                AIssistant
               </span>
             </div>
 

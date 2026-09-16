@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react';
 import { FileText, Compass, HelpCircle } from 'lucide-react';
 import type { SuggestionItem } from '../types.ts';
+
+const GREETINGS = ['Halo,', 'Selamat datang,', 'Hai,', 'Hello,', 'Siap belajar,'];
 
 const SUGGESTIONS: SuggestionItem[] = [
   {
@@ -51,11 +54,39 @@ interface WelcomeHeroProps {
 }
 
 export default function WelcomeHero({ onSelectSuggestion }: WelcomeHeroProps) {
+  const [currentText, setCurrentText] = useState('');
+  const [greetingIndex, setGreetingIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const fullText = GREETINGS[greetingIndex];
+    let timer: ReturnType<typeof setTimeout>;
+
+    if (!isDeleting && currentText === fullText) {
+      timer = setTimeout(() => setIsDeleting(true), 1500);
+    } else if (isDeleting && currentText === '') {
+      setIsDeleting(false);
+      setGreetingIndex((prev) => (prev + 1) % GREETINGS.length);
+    } else {
+      const speed = isDeleting ? 50 : 100;
+      timer = setTimeout(() => {
+        setCurrentText((prev) =>
+          isDeleting ? prev.slice(0, -1) : fullText.slice(0, prev.length + 1)
+        );
+      }, speed);
+    }
+
+    return () => clearTimeout(timer);
+  }, [currentText, isDeleting, greetingIndex]);
+
   return (
     <div className="max-w-3xl mx-auto w-full flex flex-col justify-center py-4 sm:py-14 px-3 sm:px-4">
       <div className="mb-6 sm:mb-9 group animate-slide-up-fade">
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-medium tracking-tight leading-snug sm:leading-tight select-none">
-          <span className="gemini-gradient-text font-semibold">Halo,</span>
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-medium tracking-tight leading-snug sm:leading-tight select-none min-h-[5.5rem] sm:min-h-[7rem]">
+          <span className="gemini-gradient-text font-semibold">
+            {currentText}
+          </span>
+          <span className="inline-block w-[2.5px] sm:w-[3px] h-[0.9em] bg-white ml-1.5 align-middle animate-cursor-blink" />
           <br />
           <span className="text-[#444746] group-hover:text-[#72777a] transition-colors duration-300">
             ada materi kuliah yang ingin kamu pelajari hari ini?
